@@ -1,0 +1,81 @@
+---
+
+  - name: Create External EPG and associated config 
+    aci_rest:
+      host: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no       
+      method: post
+      path: /api/mo/uni.json
+      content: |
+        {
+          "polUni": {
+            "attributes": {},
+            "children": [
+              {
+                "fvTenant": {
+                  "attributes": {
+                    "name": "{{ hostvars['mso1']['tenant'] }}"
+                  },
+                  "children": [
+                    {
+                      "cloudApp": {
+                        "attributes": {
+                          "name": "{{ hostvars['mso1']['ap'] }}"
+                        },
+                        "children": [
+                          {
+                            "cloudExtEPg": {
+                              "attributes": {
+                                "name": "{{ hostvars['mso1']['cloudextepg'] }}"
+                              },
+                              "children": [
+                                {
+                                  "fvRsProv": {
+                                    "attributes": {
+                                      "tnVzBrCPName": "{{ hostvars['mso1']['extctx'] }}"
+                                    },
+                                    "children": []
+                                  }
+                                },
+                                {
+                                  "fvRsCons": {
+                                    "attributes": {
+                                      "tnVzBrCPName": "{{ hostvars['mso1']['extctx'] }}"
+                                    },
+                                    "children": []
+                                  }
+                                },
+                                {
+                                  "cloudExtEPSelector": {
+                                    "attributes": {
+                                      "name": "inet",
+                                      "subnet": "0.0.0.0/0",
+                                      "status": "created"
+                                    },
+                                    "children": []
+                                  }
+                                },
+                                {
+                                  "cloudRsCloudEPgCtx": {
+                                    "attributes": {
+                                      "tnFvCtxName": "{{ hostvars['mso1']['vrf'] }}",
+                                      "status": ""
+                                    },
+                                    "children": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }

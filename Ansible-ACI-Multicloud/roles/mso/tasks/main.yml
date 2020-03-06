@@ -1,0 +1,351 @@
+---
+
+
+  - name: Add a new schema for cloud burst
+    mso_schema_template:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      tenant: "{{ tenant }}"
+      state: present
+
+
+  - name: Add new VRF for cloud burst
+    mso_schema_template_vrf:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      vrf: "{{ vrf }}"
+      regions: ["us-east-1"]
+      state: present
+
+
+  - name: Add a new site to the schema for cloud burst
+    mso_schema_site:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      site: "{{ item.name }}"
+      state: present
+    with_items: "{{ sites }}"
+
+  - name: Add a new site VRF region CIDR subnet
+    mso_schema_site_vrf:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      site: "AWS-CloudSite"
+      vrf: "{{ vrf }}"
+      region: "{{ cloud_region }}"
+      primary_cidr: "{{ cloud_cidr }}"
+      state: present
+
+  - name: Add a new site VRF region CIDR subnet
+    mso_schema_site_vrf_region_cidr_subnet:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      site: "{{ item[0].name }}"
+      vrf: "{{ vrf }}"
+      region: "{{ cloud_region }}"
+      cidr: "{{ cloud_cidr }}"
+      subnet: "{{ item[1] }}"
+      zone: "{{ cloud_zone }}"
+      state: present
+    when: item[0].name == "AWS-CloudSite"
+    with_nested: 
+      - "{{ sites }}"
+      - "{{ cloud_subnet }}"
+
+  - name: Add new BD and add to VRF for cloud burst
+    mso_schema_template_bd:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      bd: "{{ bd }}"
+      vrf: 
+        name: "{{ vrf }}"
+      layer2_stretch: True
+      state: present
+
+  - name: Add new subnet to BD for cloud burst
+    mso_schema_template_bd_subnet:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      bd: "{{ bd }}"
+      ip: "{{ subnet }}"
+      scope: "public"
+
+
+
+####
+
+
+
+####
+  - name: Add a new App Profile for cloud burst
+    mso_schema_template_anp:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      anp: "{{ ap }}"
+      state: present
+
+  - name: Add new EPGs for cloud burst
+    mso_schema_template_anp_epg:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      anp: "{{ ap }}"
+      epg: "{{ item.name }}"
+      bd:
+        name: "{{ bd }}"
+      vrf:
+        name: "{{ vrf }}"
+      state: present
+    when: item.epg_type == "internal"
+    with_items: "{{ epg }}"
+
+
+  - name: Add a new filter entry
+    mso_schema_template_filter_entry:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      filter: "{{ item.name }}"
+      entry: "{{ item.entry }}"
+      ethertype: "{{ item.ethertype }}"
+      ip_protocol: "{{ item.ip_protocol }}"
+      destination_to: "{{ item.dprangeto }}"
+      destination_from: "{{ item.dprangefrom }}"
+      state: present
+    when: item.dprangeto is defined
+    with_items: "{{ filter }}"
+
+  - name: Add a new icmp filter entry
+    mso_schema_template_filter_entry:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      filter: "{{ item.name }}"
+      entry: "{{ item.entry }}"
+      ethertype: "{{ item.ethertype }}"
+      ip_protocol: "{{ item.ip_protocol }}"
+      state: present
+    when: item.dprangeto is undefined
+    with_items: "{{ filter }}"
+
+  - name: Add a new contract filter
+    mso_schema_template_contract_filter:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      contract: "{{ item[0].name }}"
+      contract_filter_type: "{{ item[0].contract_type }}"
+      filter: "{{ item[1].name }}"
+      state: present
+    with_nested: 
+      - "{{ contracts }}"
+      - "{{ filter }}"
+
+  - name: Add a contract to an EPG
+    mso_schema_template_anp_epg_contract:
+      hostname: '{{ host }}'
+      username: '{{ user }}'
+      password: '{{ pass }}'
+      use_proxy: no
+      validate_certs: no
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      anp: "{{ ap }}"
+      epg: "{{ item[0].name }}"
+      contract:
+        name: "{{ item[1].name }}"
+        type: "{{ item[0].contract_type }}"
+      state: present
+    when:
+      - item[0].epg_type == "internal"
+    with_nested:
+      - "{{ epg }}"
+      - "{{ contracts }}"
+
+  - name: Add a new site ANP
+    mso_schema_site_anp:
+      host: "{{ host }}"
+      username: "{{ user }}"
+      password: "{{ pass }}"
+      use_proxy: no
+      validate_certs: false
+      schema: "{{ schema }}"
+      site: "{{ item.name }}"
+      template: "{{ template }}"
+      anp: "{{ ap }}"
+      state: present
+    when:
+      - item.name == "OnPremises-ACI"
+    with_items:
+      - "{{ sites }}"
+
+  - name: Add a new site EPG
+    mso_schema_site_anp_epg:
+      host: "{{ host }}"
+      username: "{{ user }}"
+      password: "{{ pass }}"
+      use_proxy: no
+      validate_certs: false
+      schema: "{{ schema }}"
+      site: "{{ item[0].name }}"
+      template: "{{ template }}"
+      anp: "{{ ap }}"
+      epg: "{{ item[1].name }}"
+      state: present
+    when:
+      - item[0].name == "OnPremises-ACI"
+      - item[1].name == "Database-EPG"
+    with_nested:
+      - "{{ sites }}"
+      - "{{ epg }}"
+
+
+  - name: Attach VMM domain to EPG
+    mso_schema_site_anp_epg_domain:
+      host: "{{ host }}"
+      username: "{{ user }}"
+      password: "{{ pass }}"
+      use_proxy: no
+      validate_certs: false
+      schema: "{{ schema }}"
+      site: "{{ item[0].name }}"
+      template: "{{ template }}"
+      anp: "{{ ap }}"
+      epg: "{{ item[1].name }}"
+      domain_association_type: "{{ item[2].type }}"
+      domain_profile: "{{ item[2].name }}"
+      deployment_immediacy: immediate
+      resolution_immediacy: immediate
+      state: present
+    when:
+      - item[0].name == "OnPremises-ACI"
+      - item[1].name == "Database-EPG"
+    with_nested:
+      - "{{ sites }}"
+      - "{{ epg }}"
+      - "{{ domain }}"
+
+  - name: Deploy a schema template
+    mso_schema_template_deploy:
+      host: "{{ host }}"
+      username: "{{ user }}"
+      password: "{{ pass }}"
+      use_proxy: no
+      validate_certs: false
+      schema: "{{ schema }}"
+      template: "{{ template }}"
+      state: deploy
+
+  - name: sleep for 30 seconds for schema to be deployed
+    wait_for:
+      timeout: 30  
+
+  - ec2_vpc_net_facts:
+      filters:
+        "tag:Name": "context-[{{ vrf }}]-addr-[{{ cloud_cidr }}]"
+    register: vpc
+  - debug:
+      msg: "{{ vpc.vpcs[0].id }}"
+
+  - ec2_vpc_subnet_facts:
+      filters:
+        "tag:Name": "subnet-[{{ cloud_subnet[0] }}]"
+    register: subnet
+
+  - ec2:
+      key_name: Aurora
+      instance_type: t2.micro
+      image: ami-0cbb3d6055e45ad3d
+      wait: yes
+      wait_timeout: 500
+      instance_tags:
+        Application: Web
+        Name: demo
+      vpc_subnet_id: "{{ subnet.subnets[0].id }}"
+      assign_public_ip: yes
+    register: ec2
+
+  - ec2_vpc_route_table_facts:
+      filters:
+        vpc-id: "{{ vpc.vpcs[0].id }}"
+        "tag:Name": "routetable-[{{ cloud_subnet[0] }}]"
+    register: route
+
+  - ec2_vpc_igw_facts:
+      filters:
+        "tag:Name": "igw"
+    register: igw_facts
+
+  - ec2_vpc_route_table:
+      vpc_id: "{{ vpc.vpcs[0].id }}"
+      route_table_id: "{{ route.route_tables[0].id }}"
+      lookup: id
+      routes:
+        - dest: "0.0.0.0/0"
+          gateway_id: "{{ igw_facts.internet_gateways[0].internet_gateway_id }}"
+
+  - set_fact: 
+      portgroup: "{{ tenant }}|{{ ap }}|Database-EPG"
+      cloud_cidr: "{{ cloud_cidr }}"
+      vrf: "{{ vrf }}"
+      cloud_subnet: "{{ cloud_subnet[0] }}"
+      ap: "{{ ap }}"
+      extctx: "{{ contracts[1].name }}"
+      tenant: "{{ tenant }}"
+      cloudextepg: "{{ epg[4].name }}"

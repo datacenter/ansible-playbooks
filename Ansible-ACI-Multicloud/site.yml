@@ -1,0 +1,19 @@
+---
+
+- hosts: mso1
+  connection: local
+  gather_facts: yes
+  roles:
+    - role: mso
+
+- hosts: vc
+  connection: local
+  gather_facts: yes
+  roles:
+    - role: vcenter
+
+- hosts: capicaws
+  connection: local
+  gather_facts: yes
+  roles:
+    - role: capic

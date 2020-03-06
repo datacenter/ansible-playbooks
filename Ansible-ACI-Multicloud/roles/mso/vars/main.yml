@@ -1,0 +1,51 @@
+---
+
+  sites:
+  - { name: AWS-CloudSite }
+  - { name: OnPremises-ACI }
+
+  schema: ansiblefest-cloud-burst
+  
+  template: af-hybrid-cloud
+
+  tenant: AF-2019
+
+  ap: hybrid-ap-10
+  
+  epg:
+  - { name: WEB-EPG , contract_name: web-to-db, contract_type: consumer, epg_type: internal }
+  - { name: WEB-EPG , contract_name: web-to-internet, contract_type: provider, epg_type: internal }
+  - { name: Database-EPG , contract_name: web-to-db, contract_type: provider, epg_type: internal }
+  - { name: Database-EPG , contract_name: web-to-internet, contract_type: provider, epg_type: internal }
+  - { name: Cloud-external-internet, contract_name: web-to-internet, contract_type: provider, epg_type: external }
+
+  contracts:
+  - { name: web-to-db, contract_type: both-way }
+  - { name: web-to-internet, contract_type: both-way }
+
+  filter:
+  - { name: ssh, entry: ssh, ethertype: ipv4, ip_protocol: tcp, dprangefrom: 22, dprangeto: 22 } 
+  - { name: ping, entry: ping, ethertype: ipv4, ip_protocol: icmp } 
+  - { name: db, entry: db, ethertype: ipv4, ip_protocol: tcp, dprangefrom: 3306, dprangeto: 3306 }
+  - { name: web, entry: web, ethertype: ipv4, ip_protocol: tcp, dprangefrom: 8082, dprangeto: 8082 }
+
+  vrf: Pod-10-VRF
+
+  bd: Bd-10
+
+  domain:
+  - { name: ACI-VDS-SD, type: vmmDomain }
+
+  subnet: 172.20.1.1/24
+ 
+  cloud_cidr: 10.7.0.0/16
+  
+  cloud_zone: us-east-1a
+
+  cloud_region: us-east-1
+
+  cloud_subnet: 
+  - 10.7.1.0/24
+  - 10.7.2.0/24
+  - 10.7.3.0/24
+  - 10.7.1.0/24

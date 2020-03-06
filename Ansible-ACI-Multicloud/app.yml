@@ -1,0 +1,58 @@
+---
+  - hosts: localhost
+    tasks:
+    - ec2_instance_facts:
+        filters:
+          "tag:Name": demo
+      register: ec2
+    - name: Add all instance public IPs to host group
+      add_host: hostname={{ item.public_ip_address }} groups=ec2hosts
+      when: item.state.name == 'running'
+      loop: "{{ ec2.instances }}"
+    - debug:
+        msg: "Conditional debug  {{ item.public_ip_address }} {{ item.private_ip_address }}"
+      when: item.state.name == 'running'
+      loop: "{{ hostvars['localhost']['ec2']['instances'] }}"
+  
+  - hosts: ec2hosts
+    user: ubuntu
+    tasks:
+    - name: Add Private IP to python file.
+      lineinfile:
+        path: /home/ubuntu/RandomImages-App1/image_web_server.py
+        regexp: '^app.run\(host='
+        line: "app.run(host='{{ item.private_ip_address }}', port=8082)"
+      when: item.state.name == 'running'
+      loop: "{{ hostvars['localhost']['ec2']['instances'] }}"
+    - name: Add Public ip to index.html
+      lineinfile:
+        path: /home/ubuntu/RandomImages-App1/templates/index.html
+        regexp: '^\s{12}var\srandom_url\s=\s'
+        line: "            var random_url = \"http://{{  item.public_ip_address }}:8082/randomimage\" + \"?dummy=\" + random_number;"
+      when: item.state.name == 'running'
+      loop: "{{ hostvars['localhost']['ec2']['instances'] }}"
+
+    - name: Replace HTML content
+      lineinfile:
+        path: /home/ubuntu/RandomImages-App1/templates/index.html
+        regexp: '^\s{4}<h1> Welcome to Cisco Live Sandiego 2019 </h1>'
+        line: "    <h1>Welcome to Ansiblefest 2019</h1>"
+      when: item.state.name == 'running'
+      loop: "{{ hostvars['localhost']['ec2']['instances'] }}"
+
+    - name: Remove HTML content
+      lineinfile:
+        path: /home/ubuntu/RandomImages-App1/templates/index.html
+        regexp: '^\s{4}<h1>  LTRACI-2445 </h1>'
+        line: ""
+
+    - name: Remove HTML content
+      lineinfile:
+        path: /home/ubuntu/RandomImages-App1/templates/index.html
+        regexp: '^\t{1}<img src="https://s3-us-west-1.amazonaws.com/ltraci2445/lab/IMAGE.png" alt="Cisco Live" width="400" height="400">'
+        line: ""
+
+    - name: Start the web server
+      command: "/home/ubuntu/RandomImages-App1/image_web_server.py >> log.txt 2>&1 &"
+      when: item.state.name == 'running'
+      loop: "{{ hostvars['localhost']['ec2']['instances'] }}"

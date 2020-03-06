@@ -1,0 +1,7 @@
+---
+
+
+  vm: 
+    - { name: CL-Student-10-Tesla-db, folder: CL-Student-10, datacenter: SF-SD-Datacenter }
+
+    

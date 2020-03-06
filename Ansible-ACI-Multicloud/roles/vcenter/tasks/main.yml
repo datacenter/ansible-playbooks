@@ -1,0 +1,20 @@
+---
+
+  - name: VMWARE_GUEST | connect vNICs to correct network
+    connection: local
+    vmware_guest:
+      hostname: "{{ host }}"
+      username: "{{ user }}"
+      password: "{{ pass }}"
+      name: "{{ item.name }}"
+      folder: "{{ item.folder }}"
+      datacenter: "{{ item.datacenter }}"
+      validate_certs: false
+      state: present
+      networks:
+      - name: "clstu10"
+        device_type: vmxnet3
+      - name: "{{ hostvars['mso1']['portgroup'] }}"
+        device_type:  vmxnet3
+    with_items:
+      - "{{ vm }}"
